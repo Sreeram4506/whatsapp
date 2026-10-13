@@ -4,7 +4,9 @@ services:
     runtime: node
     region: singapore
     plan: starter
-    buildCommand: npm ci && npm run build
+    # TypeScript compilation needs devDependencies (@types/node, TypeScript, Prisma).
+    # Render builds with NODE_ENV=production, so request them explicitly.
+    buildCommand: npm ci --include=dev && npm run build
     preDeployCommand: npm run db:deploy
     startCommand: npm run start
     healthCheckPath: /health

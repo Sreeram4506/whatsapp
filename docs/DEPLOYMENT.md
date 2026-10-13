@@ -30,7 +30,7 @@ Never run `db:reset` against a shared or production database. Do **not** run `db
 Any host that runs Node ≥ 20.19 works. Build and start:
 
 ```bash
-npm ci && npm run build        # prisma generate + tsc → server/dist
+npm ci --include=dev && npm run build  # prisma generate + tsc → server/dist
 npm run start                  # node server/dist/src/index.js  (listens on $PORT)
 ```
 
