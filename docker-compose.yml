@@ -1,0 +1,16 @@
+# Optional: PostgreSQL for local development via Docker.
+# docker compose up -d   →  postgres://postgres:postgres@localhost:5433/constituencyos
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: constituencyos
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/docker-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+volumes:
+  pgdata:

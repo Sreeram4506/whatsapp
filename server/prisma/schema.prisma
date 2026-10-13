@@ -1,0 +1,498 @@
+// ConstituencyOS AI — relational schema.
+// Every tenant-owned table carries tenantId; all service queries are scoped by the
+// authenticated user's tenantId on the server (never by a client-supplied value).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PLATFORM_ADMIN
+  OFFICE_ADMIN
+  MLA
+  FIELD_OFFICER
+}
+
+enum GrievanceStatus {
+  RECEIVED
+  VERIFICATION
+  ASSIGNED
+  IN_PROGRESS
+  AWAITING_INFO
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum Channel {
+  WHATSAPP
+  SIMULATOR
+  STAFF_ENTRY
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum DeliveryStatus {
+  RECEIVED
+  SIMULATED
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  NOT_CONFIGURED
+  SUPPRESSED
+}
+
+enum AttachmentKind {
+  CITIZEN_UPLOAD
+  BEFORE
+  AFTER
+  EVIDENCE
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum GuidanceType {
+  SCHEME
+  CERTIFICATE
+}
+
+enum GuidanceStatus {
+  DRAFT
+  VERIFIED
+  ARCHIVED
+}
+
+enum UpdateVisibility {
+  INTERNAL
+  CITIZEN
+}
+
+model Tenant {
+  id                        String   @id @default(cuid())
+  slug                      String   @unique
+  officeName                String
+  mlaName                   String
+  mlaDesignation            String   @default("Member of Legislative Assembly")
+  constituency              String
+  district                  String
+  state                     String   @default("Andhra Pradesh")
+  /// true until the MLA's office has given written permission to use real branding
+  isSampleBranding          Boolean  @default(true)
+  /// true for workspaces seeded with fictional demonstration data
+  isDemoData                Boolean  @default(false)
+  brandColor                String   @default("#0f766e")
+  ticketPrefix              String   @default("COS")
+  defaultLanguage           String   @default("te")
+  whatsappPhoneNumberId     String?  @unique
+  whatsappDisplayNumber     String?
+  whatsappBusinessAccountId String?
+  /// Name of the environment variable that holds this tenant's access token (never the token itself)
+  whatsappTokenEnvKey       String?
+  officeAddress             String?
+  officeHours               String?
+  officePhone               String?
+  /// { slaDays: {CRITICAL,HIGH,MEDIUM,LOW}, escalationAfterOverdueHours, retentionMonths, mlaCanViewCitizenContact }
+  settings                  Json     @default("{}")
+  active                    Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  users          User[]
+  teams          Team[]
+  categories     Category[]
+  mandals        Mandal[]
+  villages       Village[]
+  citizens       Citizen[]
+  grievances     Grievance[]
+  conversations  Conversation[]
+  appointments   Appointment[]
+  guidance       GuidanceArticle[]
+  auditLogs      AuditLog[]
+  ticketCounters TicketCounter[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role
+  teamId       String?
+  team         Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  phone        String?
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  assignedGrievances Grievance[] @relation("assignee")
+  updates            GrievanceUpdate[]
+
+  @@index([tenantId, role])
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  department  String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  members    User[]
+  grievances Grievance[]
+  categories Category[]
+
+  @@unique([tenantId, name])
+}
+
+model Category {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code            String
+  nameEn          String
+  nameTe          String
+  emoji           String   @default("📌")
+  defaultTeamId   String?
+  defaultTeam     Team?    @relation(fields: [defaultTeamId], references: [id], onDelete: SetNull)
+  defaultPriority Priority @default(MEDIUM)
+  isInfrastructure Boolean @default(false)
+  sortOrder       Int      @default(0)
+  active          Boolean  @default(true)
+
+  grievances Grievance[]
+
+  @@unique([tenantId, code])
+}
+
+model Mandal {
+  id       String    @id @default(cuid())
+  tenantId String
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     String
+  nameTe   String?
+  villages Village[]
+  grievances Grievance[]
+
+  @@unique([tenantId, name])
+}
+
+model Village {
+  id         String  @id @default(cuid())
+  tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mandalId   String
+  mandal     Mandal  @relation(fields: [mandalId], references: [id], onDelete: Cascade)
+  name       String
+  nameTe     String?
+  kind       String  @default("VILLAGE") // VILLAGE | WARD
+  /// Coordinates are only stored when entered and verified by office staff — never generated.
+  latitude   Float?
+  longitude  Float?
+  coordsVerifiedBy String?
+
+  citizens   Citizen[]
+  grievances Grievance[]
+
+  @@unique([tenantId, mandalId, name])
+  @@index([tenantId])
+}
+
+model Citizen {
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// WhatsApp sender id / phone in international format without "+", e.g. 919000000001.
+  /// For users who adopted WhatsApp usernames and whose number is not shared, this holds "bsuid:<id>".
+  phone             String
+  /// Business-scoped user ID (BSUID) from Meta webhooks (user_id / from_user_id); matched before phone.
+  bsuid             String?
+  name              String?
+  preferredLanguage String    @default("te")
+  villageId         String?
+  village           Village?  @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  optedOut          Boolean   @default(false)
+  optedOutAt        DateTime?
+  consentAt         DateTime?
+  erasedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  grievances   Grievance[]
+  consents     ConsentRecord[]
+  appointments Appointment[]
+
+  @@unique([tenantId, phone])
+  @@unique([tenantId, bsuid])
+}
+
+model ConsentRecord {
+  id            String   @id @default(cuid())
+  tenantId      String
+  citizenId     String
+  citizen       Citizen  @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  type          String // PROCESSING_GRANTED | PROCESSING_DECLINED | OPT_OUT | OPT_IN
+  channel       Channel
+  noticeVersion String
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, citizenId])
+}
+
+model Grievance {
+  id                     String          @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticketNumber           String
+  citizenId              String
+  citizen                Citizen         @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  source                 Channel
+  categoryId             String
+  category               Category        @relation(fields: [categoryId], references: [id])
+  mandalId               String
+  mandal                 Mandal          @relation(fields: [mandalId], references: [id])
+  villageId              String?
+  village                Village?        @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  villageText            String?
+  landmark               String?
+  description            String
+  descriptionLanguage    String          @default("en")
+  latitude               Float?
+  longitude              Float?
+  urgency                String          @default("NORMAL") // NORMAL | URGENT | SAFETY
+  priority               Priority        @default(MEDIUM)
+  priorityReasons        Json            @default("[]")
+  priorityOverriddenBy   String?
+  status                 GrievanceStatus @default(RECEIVED)
+  teamId                 String?
+  team                   Team?           @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  assigneeId             String?
+  assignee               User?           @relation("assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  dueAt                  DateTime?
+  escalationLevel        Int             @default(0)
+  possibleDuplicateOfId  String?
+  // AI suggestions — always advisory, never applied without staff action
+  aiSummary              String?
+  aiSuggestedCategory    String?
+  aiSuggestedTeamId      String?
+  aiProvider             String?
+  aiGeneratedAt          DateTime?
+  // Field operations & resolution
+  fieldVisitAt           DateTime?
+  resolutionRequestedAt  DateTime?
+  resolutionNotes        String?
+  resolvedAt             DateTime?
+  resolvedById           String?
+  closedAt               DateTime?
+  citizenConfirmed       Boolean?
+  feedbackRating         Int?
+  feedbackComment        String?
+  reopenCount            Int             @default(0)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  updates     GrievanceUpdate[]
+  attachments Attachment[]
+
+  @@unique([tenantId, ticketNumber])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, categoryId])
+  @@index([tenantId, villageId])
+  @@index([tenantId, mandalId])
+  @@index([tenantId, assigneeId])
+  @@index([tenantId, teamId])
+  @@index([tenantId, dueAt])
+  @@index([tenantId, citizenId])
+}
+
+model GrievanceUpdate {
+  id          String           @id @default(cuid())
+  tenantId    String
+  grievanceId String
+  grievance   Grievance        @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  visibility  UpdateVisibility @default(INTERNAL)
+  /// NOTE | STATUS_CHANGE | ASSIGNMENT | ESCALATION | FIELD_VISIT | INSPECTION | RESOLUTION_REQUEST | CITIZEN_FEEDBACK | REOPEN | PRIORITY | SYSTEM
+  kind        String
+  message     String
+  fromStatus  GrievanceStatus?
+  toStatus    GrievanceStatus?
+  createdAt   DateTime         @default(now())
+
+  @@index([tenantId, grievanceId, createdAt])
+}
+
+model Attachment {
+  id           String         @id @default(cuid())
+  tenantId     String
+  grievanceId  String?
+  grievance    Grievance?     @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+  citizenId    String?
+  uploadedById String?
+  kind         AttachmentKind
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  sha256       String
+  source       String // WHATSAPP | SIMULATOR | STAFF
+  createdAt    DateTime       @default(now())
+
+  @@index([tenantId, grievanceId])
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  channel       Channel
+  citizenPhone  String
+  state         String    @default("idle")
+  data          Json      @default("{}")
+  language      String?
+  lastInboundAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages Message[]
+
+  @@unique([tenantId, channel, citizenPhone])
+}
+
+model Message {
+  id              String           @id @default(cuid())
+  tenantId        String
+  conversationId  String
+  conversation    Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction       MessageDirection
+  channel         Channel
+  /// WhatsApp message id (wamid) — unique to make webhook retries idempotent
+  externalId      String?          @unique
+  type            String
+  body            String?
+  payload         Json             @default("{}")
+  status          DeliveryStatus
+  error           String?
+  attempts        Int              @default(0)
+  grievanceId     String?
+  statusUpdatedAt DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([tenantId, conversationId, createdAt])
+  @@index([tenantId, status])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  tenantId    String?
+  provider    String
+  eventKey    String    @unique
+  payload     Json
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  tenantId      String
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reference     String
+  citizenId     String
+  citizen       Citizen           @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  purpose       String
+  preferredDate DateTime
+  preferredSlot String
+  status        AppointmentStatus @default(REQUESTED)
+  scheduledAt   DateTime?
+  officeNote    String?
+  handledById   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([tenantId, reference])
+  @@index([tenantId, status])
+}
+
+model GuidanceArticle {
+  id                String         @id @default(cuid())
+  tenantId          String
+  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type              GuidanceType
+  code              String
+  titleEn           String
+  titleTe           String
+  summaryEn         String
+  summaryTe         String
+  stepsEn           String[]
+  stepsTe           String[]
+  documentsEn       String[]
+  documentsTe       String[]
+  officialSourceName String
+  officialSourceUrl String
+  status            GuidanceStatus @default(DRAFT)
+  lastVerifiedAt    DateTime?
+  verifiedById      String?
+  verificationNote  String?
+  sortOrder         Int            @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([tenantId, code])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actorName  String?
+  actorRole  String?
+  action     String
+  entityType String
+  entityId   String?
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entityType, entityId])
+}
+
+model TicketCounter {
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  year     Int
+  value    Int    @default(0)
+
+  @@id([tenantId, year])
+}
