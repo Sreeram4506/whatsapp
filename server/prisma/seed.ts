@@ -204,15 +204,15 @@ interface TenantSeed {
 const TENANTS: TenantSeed[] = [
   {
     slug: "sample-seethapuram",
-    officeName: "MLA Office · Seethapuram (Sample)",
+    officeName: "MLA Office · Seetarampuram (Sample)",
     mlaName: "Sample MLA",
-    constituency: "Seethapuram (fictional)",
+    constituency: "Ramachandrapuram (Sample)",
     district: "Sample District",
     prefix: "COS",
-    address: "Sample MLA Camp Office, Main Road, Seethapuram — fictional address",
+    address: "Sample MLA Camp Office, Main Road, Seetarampuram — fictional address",
     mandals: [
       {
-        name: "Seethapuram Urban",
+        name: "Seetarampuram Urban",
         te: "సీతాపురం పట్టణం",
         villages: [
           { name: "Ward 1 – Gandhi Nagar", te: "వార్డు 1 – గాంధీ నగర్", kind: "WARD" },
