@@ -422,7 +422,8 @@ export async function runEscalationSweep(now = new Date(), tenantId?: string) {
       select: { id: true, dueAt: true, escalationLevel: true, ticketNumber: true },
     });
     for (const g of overdue) {
-      const hours = (now.getTime() - g.dueAt!.getTime()) / 3600_000;
+      if (!g.dueAt) continue;
+      const hours = (now.getTime() - g.dueAt.getTime()) / 3600_000;
       const level = hours >= s.escalationAfterOverdueHours ? 2 : 1;
       if (level <= g.escalationLevel) continue;
       await prisma.$transaction(async (tx) => {
