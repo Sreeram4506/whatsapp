@@ -79,7 +79,7 @@ to synchronize the Prisma schema, then `npm run db:seed` to load demo data.
 | Admin of a *different* MLA workspace (isolation demo) | `admin@lankapalli.demo` |
 | Platform administrator | `platform@constituencyos.demo` |
 
-The sign-in page lists these accounts as one-click buttons in local development. In a production demo, `DEMO_LOGIN_HINTS=true` exposes sample-tenant Office Admin, Field Officer and read-only MLA shortcuts; the shared password is public and changes are visible to all visitors, so use fictional data only.
+The sign-in page lists these accounts as one-click buttons. In a production demo, `DEMO_LOGIN_HINTS=true` exposes every seeded account, including platform-administrator and cross-tenant demo roles; the shared password is public and changes are visible to all visitors, so use an isolated database with fictional data only.
 
 ### The 5-minute end-to-end demo
 

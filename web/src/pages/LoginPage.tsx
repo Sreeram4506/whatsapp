@@ -102,7 +102,7 @@ export default function LoginPage() {
             <div className="mt-8 rounded-xl bg-white p-4 ring-1 ring-slate-200">
               <div className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">{demo.publicDemo ? "Public demo logins" : "Demo accounts (local build)"}</div>
               <p className="mt-1 text-[12px] text-slate-500">
-                {demo.publicDemo ? "Shared sample data; changes are visible to other visitors. Do not enter real citizen information." : "Fictional users from the seed data. Shown only when DEMO_LOGIN_HINTS is enabled."}
+                {demo.publicDemo ? "Public shared credentials include platform administration. Changes are visible to visitors; use sample data only." : "Fictional users from the seed data. Shown only when DEMO_LOGIN_HINTS is enabled."}
               </p>
               <div className="mt-3 grid gap-1.5">
                 {demo.accounts.map((a) => (

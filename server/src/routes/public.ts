@@ -42,26 +42,20 @@ publicRouter.get("/status", (_req, res) => {
     speechToText: sttConfigured(),
     whatsappWebhookConfigured: !!(config.WHATSAPP_VERIFY_TOKEN && config.WHATSAPP_APP_SECRET),
     graphApiVersion: config.WHATSAPP_GRAPH_API_VERSION,
-    // Production exposes only sample-tenant roles; never expose platform or cross-tenant admin accounts.
+    // These credentials are public whenever enabled; production must use an isolated demo database.
     demoAccounts:
       config.DEMO_LOGIN_HINTS
         ? {
             password: "Demo@2026",
             publicDemo: config.isProd,
-            accounts: config.isProd
-              ? [
-                  { key: "admin", email: "admin@seethapuram.demo", label: "Office Admin" },
-                  { key: "field", email: "ravi@seethapuram.demo", label: "Field Officer" },
-                  { key: "mla", email: "mla@seethapuram.demo", label: "MLA (read-only)" },
-                ]
-              : [
-                  { key: "admin", email: "admin@seethapuram.demo", label: "Office Administrator" },
-                  { key: "mla", email: "mla@seethapuram.demo", label: "MLA (executive view)" },
-                  { key: "field", email: "ravi@seethapuram.demo", label: "Field Officer · Roads" },
-                  { key: "field-water", email: "lakshmi@seethapuram.demo", label: "Field Officer · Water" },
-                  { key: "tenant-b", email: "admin@lankapalli.demo", label: "Admin of another MLA workspace" },
-                  { key: "platform", email: "platform@constituencyos.demo", label: "Platform Administrator" },
-                ],
+            accounts: [
+              { key: "admin", email: "admin@seethapuram.demo", label: "Office Administrator" },
+              { key: "mla", email: "mla@seethapuram.demo", label: "MLA (executive view)" },
+              { key: "field", email: "ravi@seethapuram.demo", label: "Field Officer · Roads" },
+              { key: "field-water", email: "lakshmi@seethapuram.demo", label: "Field Officer · Water" },
+              { key: "tenant-b", email: "admin@lankapalli.demo", label: "Admin of another MLA workspace" },
+              { key: "platform", email: "platform@constituencyos.demo", label: "Platform Administrator" },
+            ],
           }
         : null,
   });
