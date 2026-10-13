@@ -24,7 +24,7 @@ services:
       - key: PUBLIC_WEB_URL
         sync: false
       - key: SIMULATOR_ENABLED
-        value: "false"
+        value: "true"
       - key: DEMO_LOGIN_HINTS
         value: "false"
       - key: STORAGE_DIR
