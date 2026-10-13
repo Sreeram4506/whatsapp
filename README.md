@@ -15,7 +15,7 @@ The home page (`/`) shows **a phone with WhatsApp running inside it** — you ch
 |---|---|---|
 | WhatsApp-style phone UI + chatbot conversation (reply buttons, list pickers, photos, PDFs, location, voice-note recording, delivery ticks, notification banners) | **Implemented** | `web/src/components/whatsapp/` |
 | Bot engine: Telugu/English, 8-step complaint flow, consent, validation, resume, duplicate suggestion, tracking, schemes/certificates, appointments, opt-out | **Implemented** | `server/src/services/bot/` — same engine serves the simulator and the real webhook |
-| Ticketing (`COS-2026-000001`), case workflow, audit trail, SLA/escalation, citizen confirmation/reopen | **Implemented** | PostgreSQL via Prisma |
+| Ticketing (`COS-2026-000001`), case workflow, audit trail, SLA/escalation, citizen confirmation/reopen | **Implemented** | MongoDB Atlas via Prisma |
 | Roles: Platform admin, Office admin, MLA (read-only), Field officer (own cases only) | **Implemented** | Server-enforced; tested |
 | Multi-tenant isolation | **Implemented** | Every query scoped by the authenticated user's tenant; cross-tenant access returns 404; tested |
 | MLA command center, village intelligence, "Ask Constituency AI", CSV exports, printable PDF briefings | **Implemented** | Numbers come from the database; narrative labelled rule-based vs AI |
@@ -32,33 +32,41 @@ Read [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) for the production-r
 
 ## Quick start
 
-Requirements: **Node.js ≥ 20.19**, **PostgreSQL 14+** (a local cluster script or Docker is provided).
+Requirements: **Node.js ≥ 20.19** and a **MongoDB Atlas** cluster (or a MongoDB replica set).
 
 ```bash
 # 1. Install dependencies (npm workspaces: server + web)
 npm install
 
-# 2. Start PostgreSQL on localhost:5433 — choose ONE
-npm run db:local            # project-local cluster (needs Postgres binaries on PATH, e.g. brew install postgresql@16)
-# docker compose up -d      # or: Docker (user postgres / password postgres)
-
-# 3. Configure the server
+# 2. Configure the server
 cp server/.env.example server/.env
-#    then edit server/.env:
-#      DATABASE_URL        → postgresql://postgres@localhost:5433/constituencyos          (local cluster, no password)
-#                            postgresql://postgres:postgres@localhost:5433/constituencyos (docker)
+#    then set DATABASE_URL to your Atlas URI, ending in /constituencyos
 #      TEST_DATABASE_URL   → same, database "constituencyos_test"
 #      JWT_SECRET          → node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
-# 4. Create the schema and load fictional demo data
+# 3. Create the schema and load fictional demo data
 npm run db:deploy
 npm run db:seed
 
-# 5. Run API (http://localhost:4000) and web app (http://localhost:5180)
+# 4. Run API (http://localhost:4000) and web app (http://localhost:5180)
 npm run dev
 ```
 
 Open **http://localhost:5180** — the phone with WhatsApp is on the home page.
+
+### MongoDB Atlas database
+
+To provision the accompanying MongoDB database, keep the Atlas credentials outside
+the repository and run:
+
+```bash
+set -a; source "/path/to/atlas-credentials.env"; set +a
+MONGODB_DB=constituencyos npm run db:mongodb:init
+```
+
+This creates the `constituencyos` database, its collections, and tenant-aware
+indexes. The API uses MongoDB through Prisma; run `npm run db:deploy` afterwards
+to synchronize the Prisma schema, then `npm run db:seed` to load demo data.
 
 ### Demo accounts (password for all: `Demo@2026`, local development only)
 
@@ -98,7 +106,7 @@ server/                 Express + TypeScript + Prisma API
 web/                    React + Vite + Tailwind + Recharts + React Router
   src/components/whatsapp/   the phone + WhatsApp UI
 docs/                   setup, API, deployment, limitations
-scripts/local-db.sh     project-local PostgreSQL helper
+scripts/mongodb-init.mjs MongoDB Atlas collection/index initializer
 ```
 
 ## Common commands

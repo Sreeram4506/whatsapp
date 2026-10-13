@@ -4,8 +4,8 @@ import { PrismaClient } from "@prisma/client";
 
 /**
  * Prepares the dedicated TEST database before the suite runs:
- *   1. applies pending migrations with `prisma migrate deploy` (non-destructive)
- *   2. empties every table so each run starts clean
+ *   1. synchronizes the MongoDB schema with `prisma db push`
+ *   2. empties every collection so each run starts clean
  *
  * Step 2 is hard-guarded: it refuses to run unless the database name ends in "_test",
  * so it can never touch the development or a production database.
@@ -25,24 +25,26 @@ export default async function setup() {
   }
 
   try {
-    execSync("npx prisma migrate deploy", {
+    execSync("npx prisma db push", {
       cwd: path.resolve(__dirname, ".."),
       env: { ...process.env, DATABASE_URL: url, PRISMA_HIDE_UPDATE_MESSAGE: "1" },
       stdio: "pipe",
     });
   } catch (err) {
     const e = err as { stderr?: Buffer; stdout?: Buffer };
-    throw new Error(`prisma migrate deploy failed:\n${e.stdout?.toString() ?? ""}\n${e.stderr?.toString() ?? ""}`.slice(0, 2000));
+    throw new Error(`prisma db push failed:\n${e.stdout?.toString() ?? ""}\n${e.stderr?.toString() ?? ""}`.slice(0, 2000));
   }
 
   const prisma = new PrismaClient({ datasourceUrl: url });
   try {
-    const tables = await prisma.$queryRaw<{ tablename: string }[]>`
-      SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
-    if (tables.length) {
-      const list = tables.map((t) => `"public"."${t.tablename}"`).join(", ");
-      await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
-    }
+    await Promise.all([
+      prisma.message.deleteMany(), prisma.webhookEvent.deleteMany(), prisma.attachment.deleteMany(),
+      prisma.grievanceUpdate.deleteMany(), prisma.grievance.deleteMany(), prisma.conversation.deleteMany(),
+      prisma.appointment.deleteMany(), prisma.consentRecord.deleteMany(), prisma.citizen.deleteMany(),
+      prisma.guidanceArticle.deleteMany(), prisma.auditLog.deleteMany(), prisma.ticketCounter.deleteMany(),
+      prisma.village.deleteMany(), prisma.mandal.deleteMany(), prisma.category.deleteMany(),
+      prisma.user.deleteMany(), prisma.team.deleteMany(), prisma.tenant.deleteMany(),
+    ]);
   } finally {
     await prisma.$disconnect();
   }

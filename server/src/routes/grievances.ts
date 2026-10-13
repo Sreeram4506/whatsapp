@@ -98,7 +98,7 @@ grievanceRouter.get("/", async (req, res) => {
       : q.sort === "priority"
         ? [{ priority: "desc" }, { createdAt: "asc" }]
         : q.sort === "due"
-          ? [{ dueAt: { sort: "asc", nulls: "last" } }]
+          ? [{ dueAt: "asc" }]
           : q.sort === "updated"
             ? [{ updatedAt: "desc" }]
             : [{ createdAt: "desc" }];

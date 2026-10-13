@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -90,7 +90,7 @@ enum UpdateVisibility {
 }
 
 model Tenant {
-  id                        String   @id @default(cuid())
+  id                        String   @id @default(cuid()) @map("_id")
   slug                      String   @unique
   officeName                String
   mlaName                   String
@@ -105,7 +105,7 @@ model Tenant {
   brandColor                String   @default("#0f766e")
   ticketPrefix              String   @default("COS")
   defaultLanguage           String   @default("te")
-  whatsappPhoneNumberId     String?  @unique
+  whatsappPhoneNumberId     String?
   whatsappDisplayNumber     String?
   whatsappBusinessAccountId String?
   /// Name of the environment variable that holds this tenant's access token (never the token itself)
@@ -134,15 +134,15 @@ model Tenant {
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String    @id @default(cuid()) @map("_id")
   tenantId     String?
-  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id])
   email        String    @unique
   name         String
   passwordHash String
   role         Role
   teamId       String?
-  team         Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team         Team?     @relation(fields: [teamId], references: [id])
   phone        String?
   active       Boolean   @default(true)
   lastLoginAt  DateTime?
@@ -156,9 +156,9 @@ model User {
 }
 
 model Team {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   name        String
   department  String
   description String?
@@ -173,15 +173,15 @@ model Team {
 }
 
 model Category {
-  id              String   @id @default(cuid())
+  id              String   @id @default(cuid()) @map("_id")
   tenantId        String
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   code            String
   nameEn          String
   nameTe          String
   emoji           String   @default("📌")
   defaultTeamId   String?
-  defaultTeam     Team?    @relation(fields: [defaultTeamId], references: [id], onDelete: SetNull)
+  defaultTeam     Team?    @relation(fields: [defaultTeamId], references: [id])
   defaultPriority Priority @default(MEDIUM)
   isInfrastructure Boolean @default(false)
   sortOrder       Int      @default(0)
@@ -193,9 +193,9 @@ model Category {
 }
 
 model Mandal {
-  id       String    @id @default(cuid())
+  id       String    @id @default(cuid()) @map("_id")
   tenantId String
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
   name     String
   nameTe   String?
   villages Village[]
@@ -205,11 +205,11 @@ model Mandal {
 }
 
 model Village {
-  id         String  @id @default(cuid())
+  id         String  @id @default(cuid()) @map("_id")
   tenantId   String
-  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
   mandalId   String
-  mandal     Mandal  @relation(fields: [mandalId], references: [id], onDelete: Cascade)
+  mandal     Mandal  @relation(fields: [mandalId], references: [id])
   name       String
   nameTe     String?
   kind       String  @default("VILLAGE") // VILLAGE | WARD
@@ -226,9 +226,9 @@ model Village {
 }
 
 model Citizen {
-  id                String    @id @default(cuid())
+  id                String    @id @default(cuid()) @map("_id")
   tenantId          String
-  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
   /// WhatsApp sender id / phone in international format without "+", e.g. 919000000001.
   /// For users who adopted WhatsApp usernames and whose number is not shared, this holds "bsuid:<id>".
   phone             String
@@ -237,7 +237,7 @@ model Citizen {
   name              String?
   preferredLanguage String    @default("te")
   villageId         String?
-  village           Village?  @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  village           Village?  @relation(fields: [villageId], references: [id])
   optedOut          Boolean   @default(false)
   optedOutAt        DateTime?
   consentAt         DateTime?
@@ -250,14 +250,14 @@ model Citizen {
   appointments Appointment[]
 
   @@unique([tenantId, phone])
-  @@unique([tenantId, bsuid])
+  @@index([tenantId, bsuid])
 }
 
 model ConsentRecord {
-  id            String   @id @default(cuid())
+  id            String   @id @default(cuid()) @map("_id")
   tenantId      String
   citizenId     String
-  citizen       Citizen  @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  citizen       Citizen  @relation(fields: [citizenId], references: [id])
   type          String // PROCESSING_GRANTED | PROCESSING_DECLINED | OPT_OUT | OPT_IN
   channel       Channel
   noticeVersion String
@@ -267,19 +267,19 @@ model ConsentRecord {
 }
 
 model Grievance {
-  id                     String          @id @default(cuid())
+  id                     String          @id @default(cuid()) @map("_id")
   tenantId               String
-  tenant                 Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant                 Tenant          @relation(fields: [tenantId], references: [id])
   ticketNumber           String
   citizenId              String
-  citizen                Citizen         @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  citizen                Citizen         @relation(fields: [citizenId], references: [id])
   source                 Channel
   categoryId             String
   category               Category        @relation(fields: [categoryId], references: [id])
   mandalId               String
   mandal                 Mandal          @relation(fields: [mandalId], references: [id])
   villageId              String?
-  village                Village?        @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  village                Village?        @relation(fields: [villageId], references: [id])
   villageText            String?
   landmark               String?
   description            String
@@ -292,9 +292,9 @@ model Grievance {
   priorityOverriddenBy   String?
   status                 GrievanceStatus @default(RECEIVED)
   teamId                 String?
-  team                   Team?           @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team                   Team?           @relation(fields: [teamId], references: [id])
   assigneeId             String?
-  assignee               User?           @relation("assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee               User?           @relation("assignee", fields: [assigneeId], references: [id])
   dueAt                  DateTime?
   escalationLevel        Int             @default(0)
   possibleDuplicateOfId  String?
@@ -334,12 +334,12 @@ model Grievance {
 }
 
 model GrievanceUpdate {
-  id          String           @id @default(cuid())
+  id          String           @id @default(cuid()) @map("_id")
   tenantId    String
   grievanceId String
-  grievance   Grievance        @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+  grievance   Grievance        @relation(fields: [grievanceId], references: [id])
   authorId    String?
-  author      User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author      User?            @relation(fields: [authorId], references: [id])
   visibility  UpdateVisibility @default(INTERNAL)
   /// NOTE | STATUS_CHANGE | ASSIGNMENT | ESCALATION | FIELD_VISIT | INSPECTION | RESOLUTION_REQUEST | CITIZEN_FEEDBACK | REOPEN | PRIORITY | SYSTEM
   kind        String
@@ -352,10 +352,10 @@ model GrievanceUpdate {
 }
 
 model Attachment {
-  id           String         @id @default(cuid())
+  id           String         @id @default(cuid()) @map("_id")
   tenantId     String
   grievanceId  String?
-  grievance    Grievance?     @relation(fields: [grievanceId], references: [id], onDelete: Cascade)
+  grievance    Grievance?     @relation(fields: [grievanceId], references: [id])
   citizenId    String?
   uploadedById String?
   kind         AttachmentKind
@@ -371,9 +371,9 @@ model Attachment {
 }
 
 model Conversation {
-  id            String    @id @default(cuid())
+  id            String    @id @default(cuid()) @map("_id")
   tenantId      String
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
   channel       Channel
   citizenPhone  String
   state         String    @default("idle")
@@ -389,14 +389,14 @@ model Conversation {
 }
 
 model Message {
-  id              String           @id @default(cuid())
+  id              String           @id @default(cuid()) @map("_id")
   tenantId        String
   conversationId  String
-  conversation    Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation    Conversation     @relation(fields: [conversationId], references: [id])
   direction       MessageDirection
   channel         Channel
   /// WhatsApp message id (wamid) — unique to make webhook retries idempotent
-  externalId      String?          @unique
+  externalId      String?
   type            String
   body            String?
   payload         Json             @default("{}")
@@ -409,10 +409,11 @@ model Message {
 
   @@index([tenantId, conversationId, createdAt])
   @@index([tenantId, status])
+  @@index([externalId])
 }
 
 model WebhookEvent {
-  id          String    @id @default(cuid())
+  id          String    @id @default(cuid()) @map("_id")
   tenantId    String?
   provider    String
   eventKey    String    @unique
@@ -423,12 +424,12 @@ model WebhookEvent {
 }
 
 model Appointment {
-  id            String            @id @default(cuid())
+  id            String            @id @default(cuid()) @map("_id")
   tenantId      String
-  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant            @relation(fields: [tenantId], references: [id])
   reference     String
   citizenId     String
-  citizen       Citizen           @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  citizen       Citizen           @relation(fields: [citizenId], references: [id])
   purpose       String
   preferredDate DateTime
   preferredSlot String
@@ -444,9 +445,9 @@ model Appointment {
 }
 
 model GuidanceArticle {
-  id                String         @id @default(cuid())
+  id                String         @id @default(cuid()) @map("_id")
   tenantId          String
-  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant            Tenant         @relation(fields: [tenantId], references: [id])
   type              GuidanceType
   code              String
   titleEn           String
@@ -471,9 +472,9 @@ model GuidanceArticle {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid()) @map("_id")
   tenantId   String?
-  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id])
   actorId    String?
   actorName  String?
   actorRole  String?
@@ -489,10 +490,11 @@ model AuditLog {
 }
 
 model TicketCounter {
+  id       String @id @default(cuid()) @map("_id")
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
   year     Int
   value    Int    @default(0)
 
-  @@id([tenantId, year])
+  @@unique([tenantId, year])
 }

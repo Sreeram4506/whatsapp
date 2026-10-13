@@ -134,7 +134,7 @@ async function handleMessage(m: WaInboundMessage) {
         const { buffer, mimeType } = await downloadMedia(creds, media.id);
         const mime = validateUpload(buffer, mimeType);
         const citizen =
-          (m.from_user_id && (await prisma.citizen.findUnique({ where: { tenantId_bsuid: { tenantId: tenant.id, bsuid: m.from_user_id } } }))) ||
+          (m.from_user_id && (await prisma.citizen.findFirst({ where: { tenantId: tenant.id, bsuid: m.from_user_id } }))) ||
           (await prisma.citizen.upsert({
             where: { tenantId_phone: { tenantId: tenant.id, phone: identity } },
             update: {},
@@ -188,7 +188,7 @@ const RANK: Partial<Record<DeliveryStatus, number>> = { SENT: 1, DELIVERED: 2, R
 async function handleStatus(s: WaStatus) {
   const next = STATUS_MAP[s.status];
   if (!next) return;
-  const msg = await prisma.message.findUnique({ where: { externalId: s.id } });
+  const msg = await prisma.message.findFirst({ where: { externalId: s.id } });
   if (!msg) return;
   const err = s.errors?.[0];
   // Status webhooks can arrive out of order, and concurrently. The "never downgrade" rule is enforced
@@ -208,9 +208,9 @@ async function handleStatus(s: WaStatus) {
 async function handleUserIdUpdate(u: WaUserIdUpdate) {
   const tenant = await prisma.tenant.findFirst({ where: { whatsappPhoneNumberId: u.phoneNumberId, active: true } });
   if (!tenant) return;
-  const citizen = await prisma.citizen.findUnique({ where: { tenantId_bsuid: { tenantId: tenant.id, bsuid: u.previous } } });
+  const citizen = await prisma.citizen.findFirst({ where: { tenantId: tenant.id, bsuid: u.previous } });
   if (!citizen) return;
-  const taken = await prisma.citizen.findUnique({ where: { tenantId_bsuid: { tenantId: tenant.id, bsuid: u.current } } });
+  const taken = await prisma.citizen.findFirst({ where: { tenantId: tenant.id, bsuid: u.current } });
   if (taken) return;
   await prisma.citizen.update({ where: { id: citizen.id }, data: { bsuid: u.current } });
 }

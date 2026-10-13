@@ -17,7 +17,8 @@
     "db:deploy": "npm run db:deploy -w server",
     "db:seed": "npm run db:seed -w server",
     "db:reset": "npm run db:reset -w server",
-    "db:local": "bash scripts/local-db.sh"
+    "db:local": "bash scripts/local-db.sh",
+    "db:mongodb:init": "node scripts/mongodb-init.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

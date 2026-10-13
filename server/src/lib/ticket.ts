@@ -5,11 +5,13 @@ type Tx = Prisma.TransactionClient | typeof prisma;
 
 /** Atomically allocates the next per-tenant, per-year sequence number. */
 export async function nextSequence(tx: Tx, tenantId: string, year: number): Promise<number> {
-  const rows = await tx.$queryRaw<{ value: number }[]>`
-    INSERT INTO "TicketCounter" ("tenantId", "year", "value") VALUES (${tenantId}, ${year}, 1)
-    ON CONFLICT ("tenantId", "year") DO UPDATE SET "value" = "TicketCounter"."value" + 1
-    RETURNING "value"`;
-  return Number(rows[0].value);
+  const counter = await tx.ticketCounter.upsert({
+    where: { tenantId_year: { tenantId, year } },
+    create: { tenantId, year, value: 1 },
+    update: { value: { increment: 1 } },
+    select: { value: true },
+  });
+  return counter.value;
 }
 
 export function formatTicket(prefix: string, year: number, seq: number): string {

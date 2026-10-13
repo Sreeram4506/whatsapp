@@ -7,7 +7,7 @@ Citizens ──WhatsApp──► Meta Cloud API ──HTTPS webhook──┐
                                                          ▼
 Browser ──► Vercel (web/dist, static) ──/api, /webhooks rewrite──► Node API (Render / Railway / Fly.io / ECS)
                                                                         │
-                                              Managed PostgreSQL ◄──────┤
+                                              MongoDB Atlas ◄───────────┤
                                               Private object storage ◄──┘   (see "Attachments")
 ```
 
@@ -15,15 +15,15 @@ Serving the web app and proxying `/api/*` and `/webhooks/*` through the same ori
 
 ## 1. Database
 
-Use managed PostgreSQL 14+ (Neon, Supabase, RDS, Cloud SQL, Azure, …) with automated backups and point-in-time recovery.
+Use a MongoDB Atlas cluster configured as a replica set, with backups enabled.
 
 ```bash
 # from the repository root, with DATABASE_URL pointing at the target database
 npm ci
-npm run db:deploy          # applies migrations — the ONLY schema command to run in production
+npm run db:deploy          # syncs the Prisma schema to MongoDB
 ```
 
-Never run `db:reset` or `prisma migrate reset` against a shared or production database. Do **not** run `db:seed` in production: it deletes and recreates the two demo workspaces and creates accounts with a published password. Create real workspaces through the Platform Administrator screen instead (bootstrap the first platform admin by inserting one row with a bcrypt hash — see "First platform administrator").
+Never run `db:reset` against a shared or production database. Do **not** run `db:seed` in production: it deletes and recreates the two demo workspaces and creates accounts with a published password. Create real workspaces through the Platform Administrator screen instead.
 
 ## 2. API (Node.js)
 
@@ -41,12 +41,16 @@ Required environment (see `server/.env.example`):
 | Variable | Production value |
 |---|---|
 | `NODE_ENV` | `production` (turns on `Secure` cookies, hides demo-login hints, quiet logs) |
-| `DATABASE_URL` | managed Postgres URL (use SSL: `?sslmode=require`) |
+| `DATABASE_URL` | MongoDB Atlas URI ending in `/constituencyos` |
 | `JWT_SECRET` | ≥ 32 random bytes, unique per environment |
 | `WEB_ORIGIN`, `PUBLIC_WEB_URL` | your Vercel URL(s) |
 | `SIMULATOR_ENABLED` | `false` |
 | `DEMO_LOGIN_HINTS` | unset/`false` |
-| `WHATSAPP_*`, `AI_*`, `STT_*` | see the setup guides |
+| `AI_PROVIDER` | `openai-compatible` |
+| `OPENAI_API_KEY` | OpenAI project API key, stored as a Render secret |
+| `OPENAI_COMPAT_BASE_URL` | `https://api.openai.com/v1` |
+| `OPENAI_COMPAT_MODEL` | `gpt-4.1-mini` |
+| `WHATSAPP_*`, `STT_*` | see the setup guides |
 | `STORAGE_DIR` | persistent volume path (until object storage is wired — see below) |
 
 Run **one** API instance unless you have addressed the single-instance items in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) (in-memory per-conversation lock, rate limiter and webhook work queue).
@@ -60,6 +64,14 @@ Put the API behind HTTPS (the platform's load balancer). `trust proxy` is set to
 3. Deploy. All SPA routes fall back to `index.html`.
 
 Optional: `VITE_API_PROXY` only affects the local dev proxy (`web/.env.example`).
+
+### Render Blueprint
+
+The repository includes `render.yaml`. Create a Render Blueprint from the repository,
+then enter the secret values for `DATABASE_URL`, `WEB_ORIGIN`, `PUBLIC_WEB_URL`, and
+`OPENAI_API_KEY`. Set `WEB_ORIGIN` and `PUBLIC_WEB_URL` to the final Vercel URL, then
+replace `YOUR-API-HOST.example.com` in `web/vercel.json` with the Render API URL before
+deploying Vercel.
 
 ## 4. Attachments (private object storage)
 
@@ -92,7 +104,7 @@ Sign in at `/login`, open **MLA Workspaces → Onboard workspace**. The workspac
 
 ## 7. Backup and recovery
 
-- **PostgreSQL**: enable provider automated daily backups + PITR (≥ 7–30 days). Test a restore into a scratch database quarterly: `pg_restore`/provider restore → `npm run db:deploy` (no-op if current) → sign in and spot-check.
+- **MongoDB Atlas**: enable automated backups and point-in-time recovery where your Atlas tier supports it. Test a restore into a scratch database quarterly, run `npm run db:deploy`, then sign in and spot-check.
 - **Attachments**: back up the volume/bucket alongside the database; restore both to the same point in time.
 - **Secrets**: keep `JWT_SECRET`, WhatsApp tokens and AI keys in the platform's secret manager; rotating `JWT_SECRET` signs everyone out (acceptable, immediate).
 - **Recovery objectives** to agree with the office: RPO (acceptable data loss, e.g. ≤ 15 min with PITR) and RTO (e.g. ≤ 4 h).

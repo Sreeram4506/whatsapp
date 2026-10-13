@@ -10,7 +10,7 @@ import type { Lang } from "./i18n";
 async function resolveCitizen(tenant: Tenant, phone: string, bsuid?: string) {
   const make = () => ({ tenantId: tenant.id, preferredLanguage: tenant.defaultLanguage });
   if (bsuid) {
-    const byBsuid = await prisma.citizen.findUnique({ where: { tenantId_bsuid: { tenantId: tenant.id, bsuid } } });
+    const byBsuid = await prisma.citizen.findFirst({ where: { tenantId: tenant.id, bsuid } });
     if (byBsuid) {
       if (!phone.startsWith("bsuid:") && byBsuid.phone !== phone && byBsuid.phone.startsWith("bsuid:")) {
         const clash = await prisma.citizen.findUnique({ where: { tenantId_phone: { tenantId: tenant.id, phone } } });

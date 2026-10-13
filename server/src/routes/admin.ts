@@ -393,12 +393,16 @@ adminRouter.get("/citizens", admin, async (req, res) => {
 async function eraseCitizen(tenantId: string, citizenId: string) {
   const citizen = await prisma.citizen.findUniqueOrThrow({ where: { id: citizenId } });
   const atts = await prisma.attachment.findMany({ where: { tenantId, OR: [{ citizenId }, { grievance: { citizenId } }] } });
+  const webhookEvents = await prisma.webhookEvent.findMany({ where: { OR: [{ tenantId }, { tenantId: null }] }, select: { id: true, payload: true } });
+  const webhookEventIds = webhookEvents
+    .filter((event) => JSON.stringify(event.payload).includes(citizen.phone) || (!!citizen.bsuid && JSON.stringify(event.payload).includes(citizen.bsuid)))
+    .map((event) => event.id);
   for (const a of atts) await removeObject(a.storageKey);
   const pseudo = `erased-${crypto.randomBytes(6).toString("hex")}`;
   await prisma.$transaction([
     prisma.attachment.deleteMany({ where: { id: { in: atts.map((a) => a.id) } } }),
-    // Raw webhook payloads carry the sender's number and message text — purge them too
-    prisma.$executeRaw`DELETE FROM "WebhookEvent" WHERE ("tenantId" = ${tenantId} OR "tenantId" IS NULL) AND ("payload"::text LIKE ${"%" + citizen.phone + "%"} OR (${citizen.bsuid ?? ""} <> '' AND "payload"::text LIKE ${"%" + (citizen.bsuid ?? "-") + "%"}))`,
+    // Raw webhook payloads carry the sender's number and message text — purge them too.
+    prisma.webhookEvent.deleteMany({ where: { id: { in: webhookEventIds } } }),
     prisma.message.deleteMany({ where: { tenantId, conversation: { citizenPhone: citizen.phone } } }),
     prisma.conversation.deleteMany({ where: { tenantId, citizenPhone: citizen.phone } }),
     prisma.grievance.updateMany({

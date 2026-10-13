@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: constituencyos-api
+    runtime: node
+    region: singapore
+    plan: starter
+    buildCommand: npm ci && npm run build
+    preDeployCommand: npm run db:deploy
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: WEB_ORIGIN
+        sync: false
+      - key: PUBLIC_WEB_URL
+        sync: false
+      - key: SIMULATOR_ENABLED
+        value: "false"
+      - key: DEMO_LOGIN_HINTS
+        value: "false"
+      - key: STORAGE_DIR
+        value: /var/data/storage
+      - key: AI_PROVIDER
+        value: openai-compatible
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_COMPAT_BASE_URL
+        value: https://api.openai.com/v1
+      - key: OPENAI_COMPAT_MODEL
+        value: gpt-4.1-mini
+    disk:
+      name: constituencyos-storage
+      mountPath: /var/data
+      sizeGB: 1

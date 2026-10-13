@@ -9,10 +9,10 @@
     "start": "node dist/src/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
+    "db:migrate": "prisma db push",
+    "db:deploy": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force --skip-seed && npm run db:seed"
+    "db:reset": "prisma db push --force-reset && npm run db:seed"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"
@@ -27,6 +27,7 @@
     "express-rate-limit": "^7.5.1",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.7.0",
     "multer": "^2.4.0",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0",

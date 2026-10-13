@@ -55,6 +55,8 @@ const schema = z.object({
   ANTHROPIC_MODEL: z.string().default("claude-opus-5-5"),
   AI_EFFORT: z.enum(["low", "medium", "high"]).default("low"),
   OPENAI_COMPAT_BASE_URL: z.string().optional().default(""),
+  /** Standard OpenAI API key; used when OPENAI_COMPAT_API_KEY is not set. */
+  OPENAI_API_KEY: z.string().optional().default(""),
   OPENAI_COMPAT_API_KEY: z.string().optional().default(""),
   OPENAI_COMPAT_MODEL: z.string().optional().default(""),
   AI_TIMEOUT_MS: z.coerce.number().default(30000),

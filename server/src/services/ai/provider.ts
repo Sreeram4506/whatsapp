@@ -135,11 +135,12 @@ export function getProvider(): AiProvider {
   } else if (
     config.AI_PROVIDER === "openai-compatible" &&
     config.OPENAI_COMPAT_BASE_URL &&
-    config.OPENAI_COMPAT_MODEL
+    config.OPENAI_COMPAT_MODEL &&
+    (config.OPENAI_COMPAT_API_KEY || config.OPENAI_API_KEY)
   ) {
     cached = new OpenAiCompatibleProvider(
       config.OPENAI_COMPAT_BASE_URL,
-      config.OPENAI_COMPAT_API_KEY,
+      config.OPENAI_COMPAT_API_KEY || config.OPENAI_API_KEY,
       config.OPENAI_COMPAT_MODEL,
     );
   } else {
