@@ -1,26 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
-  Bot,
-  BrainCircuit,
-  CheckCircle2,
-  Code2,
   ExternalLink,
   FlaskConical,
-  Mic,
   RefreshCw,
   RotateCcw,
   Shuffle,
-  Ticket,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { api } from "../../lib/api";
 import type { PublicTenant, SystemStatus } from "../../lib/types";
 import { PublicHeader } from "../../components/PublicHeader";
 import { DemoRibbon } from "../../components/Brand";
 import { PhoneFrame } from "../../components/whatsapp/PhoneFrame";
-import { SimulatorEvents, WhatsAppApp } from "../../components/whatsapp/WhatsAppApp";
+import { WhatsAppApp } from "../../components/whatsapp/WhatsAppApp";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Card, ErrorState, Select, Spinner } from "../../components/ui";
 
@@ -51,10 +43,8 @@ export default function DemoPage() {
   const [error, setError] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(store.get("cos.sim.slug"));
   const [phone, setPhone] = useState<string>(store.get("cos.sim.phone") ?? randomPhone());
-  const [events, setEvents] = useState<SimulatorEvents>({ tickets: [] });
   const [quick, setQuick] = useState<{ text: string; nonce: number } | null>(null);
   const [resetNonce, setResetNonce] = useState(0);
-  const [showJson, setShowJson] = useState(true);
   const desktop = useMediaQuery("(min-width: 640px)");
   // On a real phone the chat fills whatever is left of the viewport below the page header
   const mobileBox = useRef<HTMLDivElement>(null);
@@ -92,13 +82,12 @@ export default function DemoPage() {
     store.set("cos.sim.phone", phone);
   }, [slug, phone]);
 
-  const onEvents = useCallback((e: SimulatorEvents) => setEvents(e), []);
   const tenant = tenants?.find((t) => t.slug === slug) ?? null;
   const say = (text: string) => setQuick({ text, nonce: Date.now() });
 
   const phoneApp =
     tenant && status?.simulatorEnabled ? (
-      <WhatsAppApp key={`${tenant.slug}:${phone}:${desktop}`} tenant={tenant} phone={phone} framed={desktop} onEvents={onEvents} quickSend={quick} resetNonce={resetNonce} />
+      <WhatsAppApp key={`${tenant.slug}:${phone}:${desktop}`} tenant={tenant} phone={phone} framed={desktop} quickSend={quick} resetNonce={resetNonce} />
     ) : null;
 
   return (
@@ -191,86 +180,8 @@ export default function DemoPage() {
             )}
           </section>
 
-          {/* Live system panel */}
+          {/* Demo walkthrough */}
           <section className="order-3 min-w-0 space-y-4 px-4 sm:px-0 lg:col-span-2 xl:col-span-1 xl:pt-6">
-            <Card className="p-4">
-              <div className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-slate-500">What's real in this demo</div>
-              <ul className="space-y-2.5 text-[13px]">
-                <li className="flex gap-2.5">
-                  <Bot className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
-                  <span><strong>Bot engine & database — live.</strong> Every message is processed by the server; complaints, tickets and updates are stored in PostgreSQL.</span>
-                </li>
-                <li className="flex gap-2.5">
-                  {tenant.whatsappLive ? <Wifi className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" /> : <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />}
-                  <span>
-                    <strong>WhatsApp — {tenant.whatsappLive ? "live number configured" : "simulated"}.</strong>{" "}
-                    {tenant.whatsappLive
-                      ? `Real citizens reach this workspace at ${tenant.whatsappDisplayNumber ?? "its configured number"}; this phone stays a simulation.`
-                      : "Replies are stored with status SIMULATED and never sent. Connect the Cloud API to go live (docs/WHATSAPP_SETUP.md)."}
-                  </span>
-                </li>
-                <li className="flex gap-2.5">
-                  <BrainCircuit className={`mt-0.5 h-4 w-4 shrink-0 ${status.ai.live ? "text-teal-700" : "text-amber-600"}`} />
-                  <span>
-                    <strong>AI — {status.ai.live ? "connected" : "demo mode"}.</strong> {status.ai.label}.
-                  </span>
-                </li>
-                <li className="flex gap-2.5">
-                  <Mic className={`mt-0.5 h-4 w-4 shrink-0 ${status.speechToText ? "text-teal-700" : "text-slate-400"}`} />
-                  <span>
-                    <strong>Voice notes — {status.speechToText ? "transcribed" : "integration point only"}.</strong> {status.speechToText ? "Telugu/English speech-to-text is configured." : "The bot explains that voice is unavailable and asks the citizen to type."}
-                  </span>
-                </li>
-              </ul>
-            </Card>
-
-            <Card className="p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">Tickets from this chat</div>
-                <Ticket className="h-4 w-4 text-slate-400" />
-              </div>
-              {events.tickets.length === 0 ? (
-                <p className="text-[13px] text-slate-500">Register a complaint in the phone — its ticket number appears here with links to the office console.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {events.tickets.map((t) => (
-                    <li key={t} className="flex items-center justify-between gap-2 rounded-lg bg-teal-50 px-3 py-2 ring-1 ring-teal-100">
-                      <span className="flex items-center gap-2 font-mono text-[13px] font-semibold text-teal-900">
-                        <CheckCircle2 className="h-4 w-4 text-teal-600" /> {t}
-                      </span>
-                      <span className="flex gap-3 text-[12.5px] font-medium">
-                        <a className="text-navy-700 hover:underline" href={`/app/grievances?q=${t}`} target="_blank" rel="noreferrer">
-                          Office console
-                        </a>
-                        <a className="text-navy-700 hover:underline" href={`/track?w=${tenant.slug}&t=${t}`} target="_blank" rel="noreferrer">
-                          Track
-                        </a>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-
-            <Card className="overflow-hidden">
-              <button onClick={() => setShowJson((s) => !s)} className="flex w-full items-center justify-between px-4 py-3 text-left">
-                <span className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-slate-500">
-                  <Code2 className="h-4 w-4" /> Cloud API payload of last reply
-                </span>
-                <span className="text-[12px] text-slate-400">{showJson ? "Hide" : "Show"}</span>
-              </button>
-              {showJson && (
-                <div className="border-t border-slate-100">
-                  <p className="px-4 pt-3 text-[12px] leading-relaxed text-slate-500">
-                    The exact body for <code className="rounded bg-slate-100 px-1">POST /{status.graphApiVersion}/&#123;phone-number-id&#125;/messages</code>. In simulation it is stored for review, not sent.
-                  </p>
-                  <pre className="scrollbar-thin m-3 max-h-72 overflow-auto rounded-lg bg-navy-950 p-3 text-[11.5px] leading-relaxed text-teal-100">
-                    {events.lastBot?.payload.cloudApi ? JSON.stringify(events.lastBot.payload.cloudApi, null, 2) : "// Send a message to see the payload"}
-                  </pre>
-                </div>
-              )}
-            </Card>
-
             <Card className="p-4">
               <div className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-slate-500">End-to-end demo script</div>
               <ol className="space-y-2 text-[13px] text-slate-700">

@@ -57,7 +57,7 @@ This is a credible, working demonstration and a foundation for a production syst
 
 **Security**
 - [ ] `NODE_ENV=production`, strong unique `JWT_SECRET`, secrets in a secret manager
-- [ ] For live case management, keep `SIMULATOR_ENABLED` and `DEMO_LOGIN_HINTS` off and keep demo accounts absent. A public demo must use sample-only data and expose no privileged shared accounts.
+- [ ] For live case management, keep `SIMULATOR_ENABLED` and `DEMO_LOGIN_HINTS` off and keep demo accounts absent. A public demo must use sample-only data and expose no platform-administrator or cross-tenant accounts.
 - [ ] HTTPS everywhere; database SSL; private network between API and DB
 - [ ] MFA/SSO for office admins and the MLA; password policy
 - [ ] Row-Level Security enabled; DB role for the app has no superuser rights

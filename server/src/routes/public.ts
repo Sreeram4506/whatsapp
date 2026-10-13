@@ -42,14 +42,18 @@ publicRouter.get("/status", (_req, res) => {
     speechToText: sttConfigured(),
     whatsappWebhookConfigured: !!(config.WHATSAPP_VERIFY_TOKEN && config.WHATSAPP_APP_SECRET),
     graphApiVersion: config.WHATSAPP_GRAPH_API_VERSION,
-    // Production exposes only the read-only sample MLA account; local builds retain all demo roles.
+    // Production exposes only sample-tenant roles; never expose platform or cross-tenant admin accounts.
     demoAccounts:
       config.DEMO_LOGIN_HINTS
         ? {
             password: "Demo@2026",
-            readOnly: config.isProd,
+            publicDemo: config.isProd,
             accounts: config.isProd
-              ? [{ key: "mla", email: "mla@seethapuram.demo", label: "Read-only demo" }]
+              ? [
+                  { key: "admin", email: "admin@seethapuram.demo", label: "Office Admin" },
+                  { key: "field", email: "ravi@seethapuram.demo", label: "Field Officer" },
+                  { key: "mla", email: "mla@seethapuram.demo", label: "MLA (read-only)" },
+                ]
               : [
                   { key: "admin", email: "admin@seethapuram.demo", label: "Office Administrator" },
                   { key: "mla", email: "mla@seethapuram.demo", label: "MLA (executive view)" },

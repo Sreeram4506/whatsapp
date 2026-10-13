@@ -8,7 +8,7 @@ import { Button, Field, Input, Notice } from "../components/ui";
 
 interface DemoAccounts {
   password: string;
-  readOnly: boolean;
+  publicDemo: boolean;
   accounts: { key: string; email: string; label: string }[];
 }
 
@@ -40,10 +40,14 @@ export default function LoginPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    await signIn(email, password);
+  };
+
+  const signIn = async (loginEmail: string, loginPassword: string) => {
     setBusy(true);
     setError(null);
     try {
-      await api.post("/api/auth/login", { email, password });
+      await api.post("/api/auth/login", { email: loginEmail, password: loginPassword });
       const m = await refresh();
       if (m) nav(params.get("next") ?? homeFor(m.user.role), { replace: true });
     } catch (err) {
@@ -96,19 +100,17 @@ export default function LoginPage() {
 
           {demo && (
             <div className="mt-8 rounded-xl bg-white p-4 ring-1 ring-slate-200">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">{demo.readOnly ? "Public read-only demo" : "Demo accounts (local build)"}</div>
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">{demo.publicDemo ? "Public demo logins" : "Demo accounts (local build)"}</div>
               <p className="mt-1 text-[12px] text-slate-500">
-                {demo.readOnly ? "Shared access to fictional sample data. Do not enter real citizen information." : "Fictional users from the seed data. Shown only when DEMO_LOGIN_HINTS is enabled."}
+                {demo.publicDemo ? "Shared sample data; changes are visible to other visitors. Do not enter real citizen information." : "Fictional users from the seed data. Shown only when DEMO_LOGIN_HINTS is enabled."}
               </p>
               <div className="mt-3 grid gap-1.5">
                 {demo.accounts.map((a) => (
                   <button
                     key={a.key}
                     type="button"
-                    onClick={() => {
-                      setEmail(a.email);
-                      setPassword(demo.password);
-                    }}
+                    disabled={busy}
+                    onClick={() => void signIn(a.email, demo.password)}
                     className="flex items-center justify-between rounded-lg px-3 py-2 text-left text-[13px] ring-1 ring-slate-200 transition hover:bg-teal-50 hover:ring-teal-200"
                   >
                     <span className="font-medium text-slate-800">{a.label}</span>
