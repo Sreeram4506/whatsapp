@@ -42,19 +42,22 @@ publicRouter.get("/status", (_req, res) => {
     speechToText: sttConfigured(),
     whatsappWebhookConfigured: !!(config.WHATSAPP_VERIFY_TOKEN && config.WHATSAPP_APP_SECRET),
     graphApiVersion: config.WHATSAPP_GRAPH_API_VERSION,
-    // Seeded demo accounts (local development only — see prisma/seed.ts)
+    // Production exposes only the read-only sample MLA account; local builds retain all demo roles.
     demoAccounts:
-      config.DEMO_LOGIN_HINTS && !config.isProd
+      config.DEMO_LOGIN_HINTS
         ? {
             password: "Demo@2026",
-            accounts: [
-              { key: "admin", email: "admin@seethapuram.demo", label: "Office Administrator" },
-              { key: "mla", email: "mla@seethapuram.demo", label: "MLA (executive view)" },
-              { key: "field", email: "ravi@seethapuram.demo", label: "Field Officer · Roads" },
-              { key: "field-water", email: "lakshmi@seethapuram.demo", label: "Field Officer · Water" },
-              { key: "tenant-b", email: "admin@lankapalli.demo", label: "Admin of another MLA workspace" },
-              { key: "platform", email: "platform@constituencyos.demo", label: "Platform Administrator" },
-            ],
+            readOnly: config.isProd,
+            accounts: config.isProd
+              ? [{ key: "mla", email: "mla@seethapuram.demo", label: "Read-only demo" }]
+              : [
+                  { key: "admin", email: "admin@seethapuram.demo", label: "Office Administrator" },
+                  { key: "mla", email: "mla@seethapuram.demo", label: "MLA (executive view)" },
+                  { key: "field", email: "ravi@seethapuram.demo", label: "Field Officer · Roads" },
+                  { key: "field-water", email: "lakshmi@seethapuram.demo", label: "Field Officer · Water" },
+                  { key: "tenant-b", email: "admin@lankapalli.demo", label: "Admin of another MLA workspace" },
+                  { key: "platform", email: "platform@constituencyos.demo", label: "Platform Administrator" },
+                ],
           }
         : null,
   });

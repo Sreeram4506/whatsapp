@@ -45,7 +45,7 @@ Required environment (see `server/.env.example`):
 | `JWT_SECRET` | ≥ 32 random bytes, unique per environment |
 | `WEB_ORIGIN`, `PUBLIC_WEB_URL` | your Vercel URL(s) |
 | `SIMULATOR_ENABLED` | `true` for a public demo; `false` for live case management |
-| `DEMO_LOGIN_HINTS` | unset/`false` |
+| `DEMO_LOGIN_HINTS` | `true` only for an intentional public demo; reveals the shared read-only sample login |
 | `AI_PROVIDER` | `openai-compatible` |
 | `OPENAI_API_KEY` | OpenAI project API key, stored as a Render secret |
 | `OPENAI_COMPAT_BASE_URL` | `https://api.openai.com/v1` |
@@ -53,7 +53,7 @@ Required environment (see `server/.env.example`):
 | `WHATSAPP_*`, `STT_*` | see the setup guides |
 | `STORAGE_DIR` | persistent volume path (until object storage is wired — see below) |
 
-The public simulator stores simulated conversations and any filed grievances in the configured database. Keep it disabled for live case-management deployments; enable it only when the database is dedicated to a demo.
+The public simulator stores simulated conversations and any filed grievances in the configured database. Keep it disabled for live case-management deployments; enable it only when the database is dedicated to a demo. `DEMO_LOGIN_HINTS=true` publicly reveals the shared demo password and enables one-click prefill for the read-only MLA sample account only; never use real citizen data or expose privileged shared accounts.
 
 Run **one** API instance unless you have addressed the single-instance items in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) (in-memory per-conversation lock, rate limiter and webhook work queue).
 

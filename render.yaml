@@ -26,7 +26,7 @@ services:
       - key: SIMULATOR_ENABLED
         value: "true"
       - key: DEMO_LOGIN_HINTS
-        value: "false"
+        value: "true"
       - key: STORAGE_DIR
         value: /var/data/storage
       - key: AI_PROVIDER

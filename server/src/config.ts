@@ -36,7 +36,7 @@ const schema = z.object({
   STORAGE_DIR: z.string().default("./storage"),
   MAX_UPLOAD_MB: z.coerce.number().default(5),
   SIMULATOR_ENABLED: bool,
-  /** Shows seeded demo accounts on the sign-in page. Never enable in production. */
+  /** Reveals the shared sample sign-in on the public login page when explicitly enabled. */
   DEMO_LOGIN_HINTS: bool,
   ESCALATION_JOB_INTERVAL_MINUTES: z.coerce.number().default(15),
   LOG_LEVEL: z.string().default("info"),

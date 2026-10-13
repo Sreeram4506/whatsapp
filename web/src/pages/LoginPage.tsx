@@ -8,6 +8,7 @@ import { Button, Field, Input, Notice } from "../components/ui";
 
 interface DemoAccounts {
   password: string;
+  readOnly: boolean;
   accounts: { key: string; email: string; label: string }[];
 }
 
@@ -95,8 +96,10 @@ export default function LoginPage() {
 
           {demo && (
             <div className="mt-8 rounded-xl bg-white p-4 ring-1 ring-slate-200">
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">Demo accounts (local build)</div>
-              <p className="mt-1 text-[12px] text-slate-500">Fictional users from the seed data. Shown only when DEMO_LOGIN_HINTS is enabled.</p>
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">{demo.readOnly ? "Public read-only demo" : "Demo accounts (local build)"}</div>
+              <p className="mt-1 text-[12px] text-slate-500">
+                {demo.readOnly ? "Shared access to fictional sample data. Do not enter real citizen information." : "Fictional users from the seed data. Shown only when DEMO_LOGIN_HINTS is enabled."}
+              </p>
               <div className="mt-3 grid gap-1.5">
                 {demo.accounts.map((a) => (
                   <button
